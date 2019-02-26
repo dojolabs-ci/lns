@@ -1,0 +1,18 @@
+ipcp-accept-local
+auth
+novj
+nobsdcomp
+novjccomp
+nopcomp
+noaccomp
+connect-delay 5000
+proxyarp
+nodefaultroute
+nologfd
+refuse-pap
+refuse-chap
+refuse-mschap
+require-mschap-v2
+noremoteip
+plugin /usr/lib/pppd/2.4.7/radius.so
+plugin /usr/lib/pppd/2.4.7/radattr.so
