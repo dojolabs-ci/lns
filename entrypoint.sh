@@ -3,20 +3,22 @@
 set -e
 
 # Init TCP\IP Vars
-
+(
 ## Enable IP Forwarding
 sysctl -w net.ipv4.ip_forward=1
 ## RPF - Loose mode for Internal Interface ONLY, all other interfaces in STRICT mode.
 sysctl -w net.ipv4.conf.default.rp_filter=0
+sysctl -w net.ipv4.conf.all.rp_filter=0
 sysctl -w net.ipv4.conf.eth0.rp_filter=0
+sysctl -w net.ipv4.conf.eth1.rp_filter=0
+sysctl -w net.ipv4.conf.net0.rp_filter=0
+sysctl -w net.ipv4.conf.net1.rp_filter=0
 ## Enable proxy-arp for internal services to work with clients.
 echo 1 > /proc/sys/net/ipv4/conf/all/proxy_arp
-
+) || echo "Unable to set one of the sysctl args please check..."
 
 # IP Tables
-iptables -t filter -A FORWARD 
-iptables -t filter -A FORWARD -s 10.0.0.0/8 -i ppp+ -j ACCEPT
-iptables -t filter -A FORWARD -d 10.0.0.0/8 -o ppp+ -j ACCEPT
+iptables -t filter -A FORWARD -j ACCEPT
 
 # Mark I\O packets that origin from L2TP tunnel with 0x2 mark.
 iptables -t mangle -A PREROUTING -s 10.0.0.0/8 -m mark --mark 0x1 -j ACCEPT
@@ -47,7 +49,8 @@ if [ "$IP_ASSIGN_METHOD" == "local" ]; then
     sed -i "s|plugin|#plugin|g" options.xl2tpd
 
     # generate new testuser password to xl2tpd auth
-    TEST_USER_PASSWORD=${RANDOM}${RANDOM}
+    TEST_USER_PASSWORD="${TEST_USER_PASSWORD:-password}"
+    LNS_USER="${LNS_USER:-testuser}"
     echo "testuser * $TEST_USER_PASSWORD *" >> /etc/ppp/chap-secrets
 elif [ "$IP_ASSIGN_METHOD" != "radius" ]; then
     echo "bad IP Allocation method"
@@ -89,7 +92,9 @@ sed -i -e "s|FREERADIUS_HOST|$FREERADIUS_HOST|g" /etc/radiusclient/radiusclient.
 /usr/sbin/rsyslogd
 
 # Start Bird
-bird
+if [ "$ENABLE_DYNAMIC_ROUTING" == "Xyes" ]; then
+   bird
+fi
 
 if [ -n "$TEST_USER_PASSWORD" ]; then
    echo "###################################"
